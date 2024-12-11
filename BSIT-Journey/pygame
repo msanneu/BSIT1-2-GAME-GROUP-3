@@ -2,25 +2,25 @@ import pygame
 from pygame import mixer
 from fighter import Fighter
  
+# Initialize pygame and mixer
 mixer.init()
 pygame.init()
+ 
+#define colors
+RED = (255, 0, 0)
+YELLOW = (255, 255, 0)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
  
 #create game window
 SCREEN_WIDTH = 1000
 SCREEN_HEIGHT = 600
- 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("FEURY CLASH")
  
 #set framerate
 clock = pygame.time.Clock()
 FPS = 60
- 
-#define colours
-RED = (255, 0, 0)
-YELLOW = (255, 255, 0)
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
  
 #define game variables
 intro_count = 3
@@ -69,27 +69,31 @@ WIZARD_ANIMATION_STEPS = [8, 8, 1, 8, 8, 3, 7]
 count_font = pygame.font.Font(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\font\turok.ttf", 80)
 score_font = pygame.font.Font(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\font\turok.ttf", 30)
  
+#create two instances of fighters
+fighter_1 = Fighter(1, 200, 310, False, WARRIOR_DATA, warrior_sheet, WARRIOR_ANIMATION_STEPS, sword_fx)
+fighter_2 = Fighter(2, 700, 310, True, WIZARD_DATA, wizard_sheet, WIZARD_ANIMATION_STEPS, magic_fx)
+ 
 #function for drawing text
 def draw_text(text, font, text_col, x, y):
-  img = font.render(text, True, text_col)
-  screen.blit(img, (x, y))
+    img = font.render(text, True, text_col)
+    screen.blit(img, (x, y))
  
 #function for drawing background
 def draw_bg():
-  scaled_bg = pygame.transform.scale(bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
-  screen.blit(scaled_bg, (0, 0))
+    scaled_bg = pygame.transform.scale(bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen.blit(scaled_bg, (0, 0))
  
-#function for drawing background specifically for the Intro Page (added for the intro screen)
+#function for drawing background for the Intro Page
 def draw_intro_bg():  # This function is used only for the intro screen
     scaled_intro_bg = pygame.transform.scale(intro_bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))  # Scale intro background to fit the screen
     screen.blit(scaled_intro_bg, (0, 0))  # Blit (draw) the intro background to the screen
  
 #function for drawing fighter health bars
 def draw_health_bar(health, x, y):
-  ratio = health / 100
-  pygame.draw.rect(screen, WHITE, (x - 2, y - 2, 404, 34))
-  pygame.draw.rect(screen, BLACK, (x, y, 400, 30))
-  pygame.draw.rect(screen, RED, (x, y, 400 * ratio, 30))
+    ratio = health / 100
+    pygame.draw.rect(screen, WHITE, (x - 2, y - 2, 404, 34))
+    pygame.draw.rect(screen, BLACK, (x, y, 400, 30))
+    pygame.draw.rect(screen, RED, (x, y, 400 * ratio, 30))
  
 # Function to reset the game after a round ends
 def reset_game():
@@ -102,7 +106,7 @@ def reset_game():
     fighter_2 = Fighter(2, 700, 310, True, WIZARD_DATA, wizard_sheet, WIZARD_ANIMATION_STEPS, magic_fx)
     intro_screen()  # Show the intro screen again to reset the game
  
-# Add function to check if the game is over (best of 3)
+# Function to check if the game is over (best of 3)
 def check_game_over():
     if rounds_won[0] == 2:
         return "Player 1 Wins the Game!"
@@ -116,14 +120,12 @@ def draw_centered_text(text, font, text_col, y_position):
     x_position = (SCREEN_WIDTH - text_width) / 2 # Center horizontally
     draw_text(text, font, text_col, x_position, y_position)
  
-# In your `game_over_options` function, update the text drawing as follows:
+#Function for the game over screen options
 def game_over_options():
     game_over_message = check_game_over()
     if game_over_message:
-        # Centering the game over message
+        # Centering the game over content
         draw_centered_text(game_over_message, count_font, BLACK, SCREEN_HEIGHT / 3)
-       
-        # Centering the Restart, Quit, and Return to Intro messages
         draw_centered_text("Press R to Restart", score_font, YELLOW, SCREEN_HEIGHT / 3 + 200)
         draw_centered_text("Press Q to Quit", score_font, YELLOW, SCREEN_HEIGHT / 3 + 250)
         draw_centered_text("Press I to Return to Intro", score_font, YELLOW, SCREEN_HEIGHT / 3 + 150)
@@ -142,24 +144,19 @@ def game_over_options():
                 elif event.key == pygame.K_i:  # Return to intro screen
                     intro_screen()
  
-  # *** INTRODUCTORY SCREEN FUNCTION ***
-# This function displays the initial intro screen with options for "Start" and "User Manual"
+#INTRODUCTORY SCREEN FUNCTION: "START" and "USER MANUAL" as options
 def intro_screen():
     intro = True  # Keep the intro screen active until player starts
     while intro:
         draw_intro_bg()  # Draw the intro background (this line uses the newly added background)
- 
-        # Title Text (Centered)
         title_text = "FEURY CLASH"
         title_text_width, title_text_height = count_font.size(title_text)  # Get text dimensions
         draw_text(title_text, count_font, RED, (SCREEN_WIDTH - title_text_width) / 2, SCREEN_HEIGHT / 3 - 120)
  
-        # "Press ENTER to Start" (Centered)
         start_text = "Press ENTER to Start"
         start_text_width, start_text_height = count_font.size(start_text)  # Get text dimensions
         draw_text(start_text, count_font, YELLOW, (SCREEN_WIDTH - start_text_width) / 2, SCREEN_HEIGHT / 3 + 30)
  
-        # "Press U for User Manual" (Centered)
         manual_text = "Press U for User Manual"
         manual_text_width, manual_text_height = count_font.size(manual_text)  # Get text dimensions
         draw_text(manual_text, count_font, YELLOW, (SCREEN_WIDTH - manual_text_width) / 2, SCREEN_HEIGHT / 3 + 130)
@@ -177,29 +174,24 @@ def intro_screen():
  
         pygame.display.update()  # Update the display with the intro screen
  
-# *** USER MANUAL PAGE FUNCTION ***
-# This function displays instructions on how to play the game
+#USER MANUAL PAGE FUNCTION
 def show_user_manual():
     manual = True
-    # Load the user manual background image
     manual_bg_image = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\background\intro.jpg").convert_alpha()
     scaled_manual_bg = pygame.transform.scale(manual_bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))  # Scale to fit the screen
-   
-   
+ 
     while manual:
         screen.blit(scaled_manual_bg, (0, 0))  # Blit (draw) the manual background to the screen
- 
-        # Title Text: "User Manual" (Centered)
         title_text = "User Manual"
         title_text_width, title_text_height = count_font.size(title_text)  # Get text dimensions
         draw_text(title_text, count_font, RED, (SCREEN_WIDTH - title_text_width) / 2, SCREEN_HEIGHT / 3 - 100)
  
         # Instructions (Centered)
         instructions = [
-            "1. Use Arrow keys to move Warrior (Player 1).",
-            "2. Use W, A, & D keys to move Wizard (Player 2).",
-            "3. Press 1 or 2 to attack (Player 1).",
-            "4. Press G or T to attack (Player 2).",
+            "1. Use  W, A, & D  to move Warrior (Player 1).",
+            "2. Use Arrow keys to move Wizard (Player 2).",
+            "3. Press G or T to attack (Player 1).",
+            "4. Press 1 or 2 to attack (Player 2).",
             "5. First player to win TWO rounds wins the game!",
             "Press ENTER to return."
         ]
@@ -222,35 +214,28 @@ def show_user_manual():
                     manual = False
  
         pygame.display.update()  # Update the display with the user manual
-       
-# ** PAUSE FUNCTIONALITY **
+ 
+#PAUSE FUNCTIONALITY
 def pause_game():
     global paused
     paused = True
-   
-    # Load and scale the pause background image
     pause_bg_image = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\background\intro.jpg").convert_alpha()
     scaled_pause_bg = pygame.transform.scale(pause_bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))  # Scale it to fit the screen
    
     while paused:
         screen.blit(scaled_pause_bg, (0, 0))  # Blit the background to the screen
- 
-        # Center "PAUSED" text
         title_text = "PAUSED"
         title_width, title_height = count_font.size(title_text)
         draw_text(title_text, count_font, YELLOW, (SCREEN_WIDTH - title_width) / 2, SCREEN_HEIGHT / 3 - 100)
  
-        # Center "Press C to Continue" text
         continue_text = "Press C to Continue"
         continue_width, continue_height = count_font.size(continue_text)
         draw_text(continue_text, count_font, YELLOW, (SCREEN_WIDTH - continue_width) / 2, SCREEN_HEIGHT / 3 + 50)
  
-        # Center "Press S for Settings" text
         settings_text = "Press S for Settings"
         settings_width, settings_height = count_font.size(settings_text)
         draw_text(settings_text, count_font, YELLOW, (SCREEN_WIDTH - settings_width) / 2, SCREEN_HEIGHT / 3 + 150)
  
-        # Center "Press ESC to Exit" text
         exit_text = "Press ESC to Exit"
         exit_width, exit_height = count_font.size(exit_text)
         draw_text(exit_text, count_font, YELLOW, (SCREEN_WIDTH - exit_width) / 2, SCREEN_HEIGHT / 3 + 250)
@@ -270,20 +255,16 @@ def pause_game():
  
         pygame.display.update()
  
-# ** SETTINGS MENU **
+#SETTINGS MENU
 def settings_menu():
     global paused
     paused = True
-   
-  # Load the background image for settings
     settings_bg_image = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\background\intro.jpg").convert_alpha()
     scaled_settings_bg = pygame.transform.scale(settings_bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))  # Scale it to fit the screen  
    
     while paused:
         # Draw the background first
         screen.blit(scaled_settings_bg, (0, 0))  # Blit the background to the screen
- 
-        # Title Text: "SETTINGS" (Centered)
         title_text = "SETTINGS"
         title_text_width, title_text_height = count_font.size(title_text)  # Get text dimensions
         draw_text(title_text, count_font, YELLOW, (SCREEN_WIDTH - title_text_width) / 2, SCREEN_HEIGHT / 3 - 100)
@@ -322,12 +303,7 @@ def settings_menu():
  
         pygame.display.update()  # Update the display with the settings menu
  
-#create two instances of fighters
-fighter_1 = Fighter(1, 200, 310, False, WARRIOR_DATA, warrior_sheet, WARRIOR_ANIMATION_STEPS, sword_fx)
-fighter_2 = Fighter(2, 700, 310, True, WIZARD_DATA, wizard_sheet, WIZARD_ANIMATION_STEPS, magic_fx)
- 
-# *** CALL INTRO SCREEN FUNCTION ***
-# This is where the intro screen is shown before the actual game begins
+#CALL INTRO SCREEN FUNCTION: before the actual game begins
 intro_screen()  # Call to display the introductory page first
  
 #game loop
@@ -405,3 +381,4 @@ while run:
    
 # Exit pygame
 pygame.quit()
+ 
