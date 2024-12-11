@@ -1,0 +1,385 @@
+import pygame
+from pygame import mixer
+from fighter import Fighter
+ 
+# Initialize pygame and mixer
+mixer.init()
+pygame.init()
+ 
+#define colors
+RED = (255, 0, 0)
+YELLOW = (255, 255, 0)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+ 
+#create game window
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = 600
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("FEURY CLASH")
+ 
+#set framerate
+clock = pygame.time.Clock()
+FPS = 60
+ 
+#define game variables
+intro_count = 3
+last_count_update = pygame.time.get_ticks()
+score = [0, 0]#player scores. [P1, P2]
+rounds_won = [0, 0]  # Track rounds won by each player [P1, P2]
+round_over = False
+ROUND_OVER_COOLDOWN = 2000
+paused = False
+ 
+#define fighter variables
+WARRIOR_SIZE = 162
+WARRIOR_SCALE = 4
+WARRIOR_OFFSET = [72, 56]
+WARRIOR_DATA = [WARRIOR_SIZE, WARRIOR_SCALE, WARRIOR_OFFSET]
+WIZARD_SIZE = 250
+WIZARD_SCALE = 3
+WIZARD_OFFSET = [112, 107]
+WIZARD_DATA = [WIZARD_SIZE, WIZARD_SCALE, WIZARD_OFFSET]
+ 
+#load music and sounds
+pygame.mixer.music.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\audio\bg_music.mp3")
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1, 0.0, 5000)
+sword_fx = pygame.mixer.Sound(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\audio\sword.wav")
+sword_fx.set_volume(0.5)
+magic_fx = pygame.mixer.Sound(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\audio\magic.wav")
+magic_fx.set_volume(0.75)
+ 
+#load background image
+bg_image = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\background\bg.jpg").convert_alpha()
+intro_bg_image = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\background\intro.jpg").convert_alpha()
+ 
+#load spritesheets
+warrior_sheet = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\warrior\warrior.png").convert_alpha()
+wizard_sheet = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\wizardSprites\wizard.png").convert_alpha()
+ 
+#load victory image
+victory_img = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\icons\victory.png").convert_alpha()
+ 
+#define number of steps in each animation
+WARRIOR_ANIMATION_STEPS = [10, 8, 1, 7, 7, 3, 7]
+WIZARD_ANIMATION_STEPS = [8, 8, 1, 8, 8, 3, 7]
+ 
+#define font
+count_font = pygame.font.Font(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\font\turok.ttf", 80)
+score_font = pygame.font.Font(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\font\turok.ttf", 30)
+ 
+#create two instances of fighters
+fighter_1 = Fighter(1, 200, 310, False, WARRIOR_DATA, warrior_sheet, WARRIOR_ANIMATION_STEPS, sword_fx)
+fighter_2 = Fighter(2, 700, 310, True, WIZARD_DATA, wizard_sheet, WIZARD_ANIMATION_STEPS, magic_fx)
+ 
+#function for drawing text
+def draw_text(text, font, text_col, x, y):
+    img = font.render(text, True, text_col)
+    screen.blit(img, (x, y))
+ 
+#function for drawing background
+def draw_bg():
+    scaled_bg = pygame.transform.scale(bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen.blit(scaled_bg, (0, 0))
+ 
+#function for drawing background for the Intro Page
+def draw_intro_bg():  # This function is used only for the intro screen
+    scaled_intro_bg = pygame.transform.scale(intro_bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))  # Scale intro background to fit the screen
+    screen.blit(scaled_intro_bg, (0, 0))  # Blit (draw) the intro background to the screen
+ 
+#function for drawing fighter health bars
+def draw_health_bar(health, x, y):
+    ratio = health / 100
+    pygame.draw.rect(screen, WHITE, (x - 2, y - 2, 404, 34))
+    pygame.draw.rect(screen, BLACK, (x, y, 400, 30))
+    pygame.draw.rect(screen, RED, (x, y, 400 * ratio, 30))
+ 
+# Function to reset the game after a round ends
+def reset_game():
+    global fighter_1, fighter_2, round_over, rounds_won, intro_count, score
+    rounds_won = [0, 0]  # Reset rounds won
+    score = [0, 0]  # Reset scores
+    round_over = False
+    intro_count = 3
+    fighter_1 = Fighter(1, 200, 310, False, WARRIOR_DATA, warrior_sheet, WARRIOR_ANIMATION_STEPS, sword_fx)
+    fighter_2 = Fighter(2, 700, 310, True, WIZARD_DATA, wizard_sheet, WIZARD_ANIMATION_STEPS, magic_fx)
+    intro_screen()  # Show the intro screen again to reset the game
+ 
+# Function to check if the game is over (best of 3)
+def check_game_over():
+    if rounds_won[0] == 2:
+        return "Player 1 Wins the Game!"
+    elif rounds_won[1] == 2:
+        return "Player 2 Wins the Game!"
+    return None
+ 
+# Add function to display options after a game is over
+def draw_centered_text(text, font, text_col, y_position):
+    text_width, text_height = font.size(text)
+    x_position = (SCREEN_WIDTH - text_width) / 2 # Center horizontally
+    draw_text(text, font, text_col, x_position, y_position)
+ 
+#Function for the game over screen options
+def game_over_options():
+    game_over_message = check_game_over()
+    if game_over_message:
+        # Centering the game over content
+        draw_centered_text(game_over_message, count_font, BLACK, SCREEN_HEIGHT / 3)
+        draw_centered_text("Press R to Restart", score_font, YELLOW, SCREEN_HEIGHT / 3 + 200)
+        draw_centered_text("Press Q to Quit", score_font, YELLOW, SCREEN_HEIGHT / 3 + 250)
+        draw_centered_text("Press I to Return to Intro", score_font, YELLOW, SCREEN_HEIGHT / 3 + 150)
+ 
+        # Event handling for game over screen
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:  # Restart the game
+                    reset_game()
+                elif event.key == pygame.K_q:  # Quit the game
+                    pygame.quit()
+                    exit()
+                elif event.key == pygame.K_i:  # Return to intro screen
+                    intro_screen()
+ 
+#INTRODUCTORY SCREEN FUNCTION: "START" and "USER MANUAL" as options
+def intro_screen():
+    intro = True  # Keep the intro screen active until player starts
+    while intro:
+        draw_intro_bg()  # Draw the intro background (this line uses the newly added background)
+        title_text = "FEURY CLASH"
+        title_text_width, title_text_height = count_font.size(title_text)  # Get text dimensions
+        draw_text(title_text, count_font, RED, (SCREEN_WIDTH - title_text_width) / 2, SCREEN_HEIGHT / 3 - 120)
+ 
+        start_text = "Press ENTER to Start"
+        start_text_width, start_text_height = count_font.size(start_text)  # Get text dimensions
+        draw_text(start_text, count_font, YELLOW, (SCREEN_WIDTH - start_text_width) / 2, SCREEN_HEIGHT / 3 + 30)
+ 
+        manual_text = "Press U for User Manual"
+        manual_text_width, manual_text_height = count_font.size(manual_text)  # Get text dimensions
+        draw_text(manual_text, count_font, YELLOW, (SCREEN_WIDTH - manual_text_width) / 2, SCREEN_HEIGHT / 3 + 130)
+ 
+        # Event handling loop for the intro screen
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()  # Close the game if the player closes the window
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:  # Start the game if Enter is pressed
+                    intro = False
+                elif event.key == pygame.K_u:  # Show the User Manual if "U" is pressed
+                    show_user_manual()
+ 
+        pygame.display.update()  # Update the display with the intro screen
+ 
+#USER MANUAL PAGE FUNCTION
+def show_user_manual():
+    manual = True
+    manual_bg_image = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\background\intro.jpg").convert_alpha()
+    scaled_manual_bg = pygame.transform.scale(manual_bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))  # Scale to fit the screen
+ 
+    while manual:
+        screen.blit(scaled_manual_bg, (0, 0))  # Blit (draw) the manual background to the screen
+        title_text = "User Manual"
+        title_text_width, title_text_height = count_font.size(title_text)  # Get text dimensions
+        draw_text(title_text, count_font, RED, (SCREEN_WIDTH - title_text_width) / 2, SCREEN_HEIGHT / 3 - 100)
+ 
+        # Instructions (Centered)
+        instructions = [
+            "1. Use Arrow keys to move Warrior (Player 1).",
+            "2. Use W, A, & D keys to move Wizard (Player 2).",
+            "3. Press 1 or 2 to attack (Player 1).",
+            "4. Press G or T to attack (Player 2).",
+            "5. First player to win TWO rounds wins the game!",
+            "Press ENTER to return."
+        ]
+ 
+        # Calculate the starting Y position for the instructions
+        start_y = SCREEN_HEIGHT / 3 + 50
+ 
+        # Loop through each instruction and draw it
+        for i, instruction in enumerate(instructions):
+            text_width, text_height = score_font.size(instruction)
+            draw_text(instruction, score_font, YELLOW, (SCREEN_WIDTH - text_width) / 2, start_y + (i * 50))
+ 
+        # Event handling for the User Manual
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:  # Return to intro screen if Enter is pressed
+                    manual = False
+ 
+        pygame.display.update()  # Update the display with the user manual
+ 
+#PAUSE FUNCTIONALITY
+def pause_game():
+    global paused
+    paused = True
+    pause_bg_image = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\background\intro.jpg").convert_alpha()
+    scaled_pause_bg = pygame.transform.scale(pause_bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))  # Scale it to fit the screen
+   
+    while paused:
+        screen.blit(scaled_pause_bg, (0, 0))  # Blit the background to the screen
+        title_text = "PAUSED"
+        title_width, title_height = count_font.size(title_text)
+        draw_text(title_text, count_font, YELLOW, (SCREEN_WIDTH - title_width) / 2, SCREEN_HEIGHT / 3 - 100)
+ 
+        continue_text = "Press C to Continue"
+        continue_width, continue_height = count_font.size(continue_text)
+        draw_text(continue_text, count_font, YELLOW, (SCREEN_WIDTH - continue_width) / 2, SCREEN_HEIGHT / 3 + 50)
+ 
+        settings_text = "Press S for Settings"
+        settings_width, settings_height = count_font.size(settings_text)
+        draw_text(settings_text, count_font, YELLOW, (SCREEN_WIDTH - settings_width) / 2, SCREEN_HEIGHT / 3 + 150)
+ 
+        exit_text = "Press ESC to Exit"
+        exit_width, exit_height = count_font.size(exit_text)
+        draw_text(exit_text, count_font, YELLOW, (SCREEN_WIDTH - exit_width) / 2, SCREEN_HEIGHT / 3 + 250)
+ 
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_c:
+                    paused = False
+                elif event.key == pygame.K_s:
+                    settings_menu()
+                elif event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    exit()
+ 
+        pygame.display.update()
+ 
+#SETTINGS MENU
+def settings_menu():
+    global paused
+    paused = True
+    settings_bg_image = pygame.image.load(r"C:\Users\means\.vscode\GH\BSIT-Journey\assets\images\background\intro.jpg").convert_alpha()
+    scaled_settings_bg = pygame.transform.scale(settings_bg_image, (SCREEN_WIDTH, SCREEN_HEIGHT))  # Scale it to fit the screen  
+   
+    while paused:
+        # Draw the background first
+        screen.blit(scaled_settings_bg, (0, 0))  # Blit the background to the screen
+        title_text = "SETTINGS"
+        title_text_width, title_text_height = count_font.size(title_text)  # Get text dimensions
+        draw_text(title_text, count_font, YELLOW, (SCREEN_WIDTH - title_text_width) / 2, SCREEN_HEIGHT / 3 - 100)
+ 
+        # Instructions for the settings menu
+        instructions = [
+            "Press M to Mute Music",
+            "Press A to Activate Music",
+            "Press U for User Manual",
+            "Press ESC to Return"
+        ]
+ 
+        # Calculate the starting Y position for the instructions
+        start_y = SCREEN_HEIGHT / 3 + 50
+ 
+        # Loop through each instruction and draw it
+        for i, instruction in enumerate(instructions):
+            text_width, text_height = score_font.size(instruction)
+            # Draw each instruction text, centered horizontally
+            draw_text(instruction, score_font, YELLOW, (SCREEN_WIDTH - text_width) / 2, start_y + (i * 50))
+ 
+        # Event handling for the settings menu
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_m:  # Mute music
+                    pygame.mixer.music.set_volume(0)
+                elif event.key == pygame.K_a:  # Unmute music
+                    pygame.mixer.music.set_volume(0.5)
+                elif event.key == pygame.K_u:  # User Manual
+                    show_user_manual()
+                elif event.key == pygame.K_ESCAPE:
+                    paused = False  # Return to the previous state
+ 
+        pygame.display.update()  # Update the display with the settings menu
+ 
+#CALL INTRO SCREEN FUNCTION: before the actual game begins
+intro_screen()  # Call to display the introductory page first
+ 
+#game loop
+run = True
+while run:
+    clock.tick(FPS)
+ 
+    # Event handler
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_p:  # Press 'P' to pause the game
+                pause_game()
+ 
+    if paused:
+        pause_game()  # Pause game functionality
+ 
+    # Draw background
+    draw_bg()
+ 
+    # Show player stats
+    draw_health_bar(fighter_1.health, 20, 20)
+    draw_health_bar(fighter_2.health, 580, 20)
+    draw_text("PLAYER 1: " + str(score[0]), score_font, YELLOW, 20, 60)
+    draw_text("PLAYER 2: " + str(score[1]), score_font, YELLOW, 580, 60)
+ 
+    # Update countdown
+    if intro_count <= 0:
+        # Move fighters
+        fighter_1.move(SCREEN_WIDTH, SCREEN_HEIGHT, screen, fighter_2, round_over)
+        fighter_2.move(SCREEN_WIDTH, SCREEN_HEIGHT, screen, fighter_1, round_over)
+    else:
+        # Display count timer
+        draw_text(str(intro_count), count_font, RED, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 3)
+        # Update count timer
+        if (pygame.time.get_ticks() - last_count_update) >= 1000:
+            intro_count -= 1
+            last_count_update = pygame.time.get_ticks()
+ 
+    # Update fighters
+    fighter_1.update()
+    fighter_2.update()
+ 
+    # Draw fighters
+    fighter_1.draw(screen)
+    fighter_2.draw(screen)
+ 
+    # Check for player defeat
+    if round_over == False:
+        if fighter_1.alive == False:
+            score[1] += 1
+            rounds_won[1] += 1  # Player 2 wins the round
+            round_over = True
+            round_over_time = pygame.time.get_ticks()
+        elif fighter_2.alive == False:
+            score[0] += 1
+            rounds_won[0] += 1  # Player 1 wins the round
+            round_over = True
+            round_over_time = pygame.time.get_ticks()
+    else:
+        # Display victory image for this round
+        screen.blit(victory_img, (360, 150))
+        if pygame.time.get_ticks() - round_over_time > ROUND_OVER_COOLDOWN:
+            round_over = False
+            intro_count = 3
+            fighter_1 = Fighter(1, 200, 310, False, WARRIOR_DATA, warrior_sheet, WARRIOR_ANIMATION_STEPS, sword_fx)
+            fighter_2 = Fighter(2, 700, 310, True, WIZARD_DATA, wizard_sheet, WIZARD_ANIMATION_STEPS, magic_fx)
+ 
+    # Display game over options if best of three is finished
+    game_over_options()
+ 
+    # Update display
+    pygame.display.update()
+   
+# Exit pygame
+pygame.quit()
+ 
+ 
