@@ -188,10 +188,10 @@ def show_user_manual():
  
         # Instructions (Centered)
         instructions = [
-            "1. Use Arrow keys to move Warrior (Player 1).",
-            "2. Use W, A, & D keys to move Wizard (Player 2).",
-            "3. Press 1 or 2 to attack (Player 1).",
-            "4. Press G or T to attack (Player 2).",
+            "1. Use  W, A, & D  to move Warrior (Player 1).",
+            "2. Use Arrow keys to move Wizard (Player 2).",
+            "3. Press G or T to attack (Player 1).",
+            "4. Press 1 or 2 to attack (Player 2).",
             "5. First player to win TWO rounds wins the game!",
             "Press ENTER to return."
         ]
@@ -381,5 +381,4 @@ while run:
    
 # Exit pygame
 pygame.quit()
- 
  
